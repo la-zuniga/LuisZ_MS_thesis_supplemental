@@ -1,0 +1,64 @@
+
+library(ggplot2)
+library(viridis)
+library(viridisLite)
+library(RColorBrewer)
+library(reshape2)
+library(vegan)
+library(tidyverse)
+setwd("/Users/luiszuniga/Desktop/faiths2/denitrification")
+
+# importing dissimilatory nitrate reduction data
+
+denitrification_table <- read.csv(file = "denitrification_pd.csv", row.names = 1)
+denitrification_table <- as.matrix(denitrification_table)
+
+# shapiro test for normality
+shapiro.test(denitrification_table)
+
+# setting a seed
+set.seed(1224)
+
+# running ordinations
+
+# CCA oordination
+cca<-cca(denitrification_table)
+# NMDS oordination
+nmds<-metaMDS(denitrification_table, distance = "bray")
+# stress plot of nmds
+stressplot(nmds)
+nmds$stress
+# plot the NMDS
+nmds.sp.fit <- envfit(nmds, denitrification_table)
+plot(nmds, type = "n")
+plot(nmds.sp.fit)
+text(nmds, display = "sites")
+
+
+# add text labels
+#text(nmds,display = "species", cex=0.7, col="red")
+#text(nmds, display = "sites", cex=0.9, col="blue")
+
+# get data and species scores
+# storing site and species scores 
+data.scores <- scores(nmds)
+site.scores <- as.data.frame(data.scores$sites)
+sp.scores <- as.data.frame(data.scores$species)
+sp.vectors <- nmds.sp.fit$vectors
+sp.vectors <- sp.vectors$arrows
+sp.arrows <- as.data.frame(sp.vectors)
+
+# nmds with ggplot
+
+gplot <- ggplot(site.scores,aes(NMDS1,NMDS2), type = "biplot") + 
+  geom_text(label = row.names(site.scores), color = "black" ) + theme_light() + 
+  geom_segment(data=sp.arrows, aes(x=0, xend=NMDS1, y=0, yend=NMDS2), arrow = arrow(length = unit(0.1, "cm")), lwd=0.3) +
+  ggrepel::geom_text_repel(data = sp.arrows, label = row.names(sp.arrows), color = "red", direction = "both") + 
+  theme(plot.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+gplot
+# plot CCA
+plot(cca)
+summary(cca)
+
